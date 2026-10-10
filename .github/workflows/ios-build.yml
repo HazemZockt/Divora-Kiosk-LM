@@ -58,10 +58,9 @@ jobs:
           PY
           mkdir -p build/ios
           "$GODOT_BIN" --headless --path . --export-release iPhone-iPad build/ios/DivoraKioskLM.zip
-          test -s build/ios/DivoraKioskLM.zip
-          mkdir -p build/ios/project
-          unzip -q build/ios/DivoraKioskLM.zip -d build/ios/project
-          project="$(find build/ios/project -maxdepth 5 -name '*.xcodeproj' -type d -print -quit)"
+          # Bei "Export Project Only" schreibt Godot die Dateien direkt
+          # neben den gewählten Ausgabepfad, statt eine ZIP zu erzeugen.
+          project="$(find build/ios -maxdepth 3 -name '*.xcodeproj' -type d -print -quit)"
           test -n "$project"
           echo "XCODE_PROJECT=$project" >> "$GITHUB_ENV"
 
