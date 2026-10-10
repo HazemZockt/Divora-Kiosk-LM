@@ -6,7 +6,7 @@ Spielbarer Hochkant-Prototyp eines Kiosk-Tycoons für Smartphone-Größen. Du be
 
 - **Windows:** `build/DivoraKioskLM-Windows.exe` öffnen. Das Fenster kann schmaler oder größer gezogen werden.
 - **Android:** `build/DivoraKioskLM-Android.apk` auf einem Android-Gerät installieren. Eine APK lässt sich nicht auf iPhone oder iPad installieren.
-- **iPhone/iPad:** Ein GitHub-Workflow baut das Godot-Projekt auf einem GitHub-Mac ohne eigenen Mac. Die dabei erzeugte IPA ist zunächst unsigniert und muss vor der Installation mit deinem Apple-Account auf Windows signiert werden. Siehe [IOS-GITHUB.md](IOS-GITHUB.md).
+- **iPhone/iPad:** Der [erfolgreiche GitHub-Build](https://github.com/HazemZockt/Divora-Kiosk-LM/actions/runs/38042575722) enthält eine unsignierte IPA für beide Geräte. Sie muss vor der Installation mit deinem Apple-Account auf Windows signiert werden. Siehe [IOS-GITHUB.md](IOS-GITHUB.md).
 
 ## Spielen
 
