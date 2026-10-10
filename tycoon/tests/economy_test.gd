@@ -1,0 +1,61 @@
+extends SceneTree
+const Model = preload("res://tycoon/economy.gd")
+var failures: Array = []
+var checks = 0
+func ck(ok: bool, why: String):
+	checks += 1
+	if not ok:
+		failures.append(why)
+		printerr("FAIL: ", why)
+func _initialize():
+	var e = Model.new(9)
+	ck(e.s.cash == 0,"Starts at zero cash")
+	ck(e.s.stores[0].stock[0] == 12,"Free starter stock")
+	ck(e.rank() == 6 and e.next_rival() == 800000,"Starts at lowest wealth rank")
+	ck(not e.buy_location(1),"Cannot buy location without money")
+	ck(not e.buy_stock(0),"Cannot order without money")
+	ck(e.customer_visit(0,0) == "sold","Starter water can sell")
+	ck(e.s.cash == 170 and e.s.stores[0].stock[0] == 11,"Sale changes money and stock once")
+	for i in range(11): e.customer_visit(0,0)
+	ck(e.s.cash == 2040 and e.s.stores[0].stock[0] == 0,"Starter stock exhausted")
+	ck(e.customer_visit(0,0) == "empty" and e.s.cash == 2040,"No infinite tapping")
+	ck(e.buy_stock(0) and e.s.cash == 1380,"Wholesale purchase")
+	ck(e.s.stores[0].stock[0] == 12,"Delivery counted")
+	ck(e.set_price(0,10) and e.s.stores[0].prices[0] == 180,"Price adjusted")
+	ck(e.customer_visit(0,0) == "sold" and e.s.cash == 1560,"Adjusted selling price")
+	ck(e.customer_visit(0,5,true) == "empty","No regulated goods means no sale")
+	e.s.stores[0].stock[5] = 2
+	ck(e.customer_visit(0,5,true) == "refused","Minor refused under checks")
+	ck(e.s.stores[0].stock[5] == 2 and e.s.heat == 0,"Refusal leaves stock and no suspicion")
+	ck(e.set_policy("risk"),"Risk policy can be chosen")
+	ck(e.customer_visit(0,5,true) == "risky_sale","Risk sale recorded")
+	ck(e.s.heat > 0,"Violation increases inspection risk")
+	ck(e.police_check(true),"Police check detects violation")
+	ck(e.s.fines >= 250000 and e.s.cash < 0,"Substantial fine charged")
+	ck(e.customer_visit(0,5,false) == "suspended","Regulated sales suspended")
+	var l = Model.new(4)
+	l.s.cash = 20000
+	ck(l.buy_location(1),"Rentable kiosk unlocks")
+	ck(l.s.cash == 8000 and l.s.active == 1,"Site purchase and selection")
+	ck(l.hire() and l.s.stores[1].staff == 1,"Staff hired")
+	l.daily_close()
+	ck(l.s.cash == 4050,"Daily rent, electricity and wage charged")
+	ck(l.s.rent_paid == 1400 and l.s.wages == 2200,"Daily costs separated")
+	ck(l.dismiss() and l.s.stores[1].staff == 0,"Staff can leave")
+	ck(l.choose_location(0),"Can return to first kiosk")
+	ck(l.wealth() >= l.s.cash,"Value includes business assets")
+	var t = Model.new(7)
+	t.s.cash = 10000
+	t.book("Testumsatz",10000,"sale")
+	t.daily_close()
+	ck(t.s.taxes == 2000,"20 percent tax on current day profit")
+	t.daily_close()
+	ck(t.s.taxes == 2000,"Previous profit is not taxed twice")
+	var offline = Model.new(12)
+	offline.s.cash = 20000
+	offline.buy_location(1)
+	offline.tick(180.0)
+	ck(offline.s.day == 4,"Long offline interval advances every day")
+	ck(offline.s.rent_paid == 4200,"Every offline day charges rent")
+	if failures.is_empty(): print("TYCOON ECONOMY PASS: %d checks" % checks)
+	quit(0 if failures.is_empty() else 1)

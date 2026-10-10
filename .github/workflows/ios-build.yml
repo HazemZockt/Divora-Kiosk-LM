@@ -1,0 +1,93 @@
+name: Divora iPhone und iPad bauen
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Godot 4.5.1 und iOS-Exportvorlage laden
+        shell: bash
+        run: |
+          set -euo pipefail
+          release='https://github.com/godotengine/godot-builds/releases/download/4.5.1-stable'
+          curl --fail --location --retry 3 "$release/Godot_v4.5.1-stable_macos.universal.zip" -o "$RUNNER_TEMP/godot.zip"
+          curl --fail --location --retry 3 "$release/Godot_v4.5.1-stable_export_templates.tpz" -o "$RUNNER_TEMP/templates.tpz"
+          mkdir -p "$RUNNER_TEMP/godot"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          godot="$(find "$RUNNER_TEMP/godot" -path '*/Contents/MacOS/Godot' -type f -print -quit)"
+          test -n "$godot"
+          chmod +x "$godot"
+          echo "GODOT_BIN=$godot" >> "$GITHUB_ENV"
+          templates="$HOME/Library/Application Support/Godot/export_templates/4.5.1.stable"
+          mkdir -p "$templates"
+          unzip -p "$RUNNER_TEMP/templates.tpz" templates/ios.zip > "$templates/ios.zip"
+          test -s "$templates/ios.zip"
+
+      - name: Spielregeln und Speichern testen
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --path . --editor --import --quit
+          "$GODOT_BIN" --headless --path . --script res://tycoon/tests/economy_test.gd
+          "$GODOT_BIN" --headless --path . --script res://tycoon/tests/save_test.gd
+          "$GODOT_BIN" --headless --path . --quit-after 120
+
+      - name: Unsigniertes Xcode-Projekt aus Godot exportieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Godot verlangt eine Team-ID schon beim Projektexport. Sie wird nicht
+          # zum Signieren benutzt; das geschieht erst lokal mit dem Apple-Account.
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('export_presets.cfg')
+          text = path.read_text()
+          old = 'application/app_store_team_id=""'
+          assert text.count(old) == 1
+          path.write_text(text.replace(old, 'application/app_store_team_id="ABCDE12XYZ"'))
+          PY
+          mkdir -p build/ios
+          "$GODOT_BIN" --headless --path . --export-release iPhone-iPad build/ios/DivoraKioskLM.zip
+          test -s build/ios/DivoraKioskLM.zip
+          mkdir -p build/ios/project
+          unzip -q build/ios/DivoraKioskLM.zip -d build/ios/project
+          project="$(find build/ios/project -maxdepth 5 -name '*.xcodeproj' -type d -print -quit)"
+          test -n "$project"
+          echo "XCODE_PROJECT=$project" >> "$GITHUB_ENV"
+
+      - name: iPhone- und iPad-App ohne Signierung bauen
+        shell: bash
+        run: |
+          set -euo pipefail
+          scheme="$(basename "$XCODE_PROJECT" .xcodeproj)"
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$scheme" \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$PWD/build/ios/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO build
+          app="$(find build/ios/DerivedData/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' -type d -print -quit)"
+          test -n "$app"
+          mkdir -p build/ios/ipa/Payload
+          cp -R "$app" build/ios/ipa/Payload/
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :UIDeviceFamily' "$app/Info.plist"
+          (cd build/ios/ipa && zip -q -r ../DivoraKioskLM-unsigned.ipa Payload)
+          test -s build/ios/DivoraKioskLM-unsigned.ipa
+
+      - name: IPA zum Download bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: DivoraKioskLM-iPhone-iPad
+          path: build/ios/DivoraKioskLM-unsigned.ipa
+          retention-days: 7
+          if-no-files-found: error
