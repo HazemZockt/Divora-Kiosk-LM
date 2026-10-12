@@ -16,7 +16,7 @@ func valid(data) -> bool:
 	var defaults = Model.new().s
 	for key in defaults:
 		if not data.has(key): return false
-	for key in ["cash","gems","round","active","elapsed","last_wall","next_task","sales","revenue","purchases","rent_paid","wages","fines","theft","hour_clock","crime_clock","heat","suspended_until","reputation","franchise_income","income_fraction"]:
+	for key in ["cash","gems","round","active","elapsed","last_wall","next_task","sales","revenue","purchases","rent_paid","wages","fines","theft","hour_clock","crime_clock","heat","suspended_until","rescue_until","reputation","franchise_income","income_fraction"]:
 		if not number(data[key],-Model.MONEY_CAP if key == "cash" else 0): return false
 	if data.gems > 1000000 or data.round < 1 or data.active > 5 or data.active != int(data.active) or data.hour_clock >= 3600 or data.crime_clock >= 300 or data.heat > 100: return false
 	for key in ["admin","notifications","sound","reduced_motion"]:

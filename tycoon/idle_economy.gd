@@ -35,7 +35,7 @@ func reset():
 	s = {"version":3,"cash":0,"gems":0,"admin":false,"round":1,"active":0,
 		"elapsed":0.0,"last_wall":int(Time.get_unix_time_from_system()),"stores":[],"tasks":[],"next_task":1,
 		"sales":0,"revenue":0,"purchases":0,"rent_paid":0,"wages":0,"fines":0,"theft":0,
-		"hour_clock":0.0,"crime_clock":0.0,"heat":0.0,"policy":"check","suspended_until":0.0,
+		"hour_clock":0.0,"crime_clock":0.0,"heat":0.0,"policy":"check","suspended_until":0.0,"rescue_until":0.0,
 		"reputation":50.0,"notifications":false,"sound":true,"reduced_motion":false,
 		"events":[],"ledger":[],"quests":[],"franchise_income":0.0,"income_fraction":0.0}
 	new_stores()
@@ -181,6 +181,19 @@ func security_upgrade() -> bool:
 	revision += 1
 	return true
 
+func emergency_order() -> bool:
+	# A timed supplier sample prevents an empty, penniless save from becoming stuck.
+	if s.cash >= scaled(PRODUCTS[0].cost)*12 or s.elapsed < s.rescue_until: return false
+	for shop in s.stores:
+		for stock in shop.stock:
+			if stock > 0: return false
+	for task in s.tasks:
+		if task.kind == "delivery": return false
+	s.rescue_until = s.elapsed+300
+	schedule("delivery",int(s.active),60,0,12)
+	event("Dein Lieferant hilft mit 12 Wasserflaschen. Ankunft in einer Minute.")
+	return true
+
 func complete(task: Dictionary):
 	var shop = s.stores[int(task.site)]
 	match task.kind:
@@ -304,8 +317,13 @@ func advance(seconds: float):
 					if ratio <= 1.2 or int(s.sales+int(s.elapsed))%3 != 0: sell(i,p,minor)
 					break
 			if shop.manager:
+				var assortment = 0
+				for enabled in shop.unlocked:
+					if enabled: assortment += 1
 				for p in range(PRODUCTS.size()):
-					if shop.unlocked[p] and shop.stock[p] <= 4: order(p,1,i)
+					var reserve = maxi(4,int(ceil((20.0+p*10)/interval/maxi(1,assortment))))
+					var cases = mini(10,mini((capacity(i)-int(shop.stock[p]))/12,maxi(1,int(ceil(reserve*2.0/12)))))
+					if shop.unlocked[p] and shop.stock[p] <= reserve and cases > 0: order(p,cases,i)
 		var fractional = s.franchise_income*step+s.income_fraction
 		var credit = int(fractional)
 		s.income_fraction = fractional-credit

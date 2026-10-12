@@ -45,6 +45,13 @@ func _initialize():
 	ck(m.s.tasks.size() == 1,"Manager orders stock automatically")
 	m.advance(60)
 	ck(m.s.sales > 0,"Automated shop resumes sales")
+	var rescue = Model.new()
+	rescue.s.stores[0].stock[0] = 0
+	ck(rescue.emergency_order(),"Empty penniless player can recover")
+	ck(not rescue.emergency_order(),"Emergency supply cannot be spammed")
+	rescue.s.stores[0].open = false
+	rescue.advance(60)
+	ck(rescue.s.stores[0].stock[0] == 12,"Emergency sample arrives after real wait")
 	var away = Model.new()
 	away.s.cash = 100000
 	away.order(0)
