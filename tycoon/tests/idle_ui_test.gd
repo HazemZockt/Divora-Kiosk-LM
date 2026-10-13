@@ -32,6 +32,14 @@ func run():
 	await frame(5)
 	ck(app.body.size.y > 500,"Main content has useful viewport height")
 	ck(app.app.get_node("Header").size.y < 160,"Header never grows over the scrollable page")
+	app.game.s.cash = app.Model.MONEY_CAP
+	app.game.s.gems = 1000000
+	app.refresh_values()
+	await frame(5)
+	ck(app.gems.get_global_rect().end.x <= app.app.get_global_rect().end.x,"Large premium balance stays inside phone header")
+	ck(app.app.get_node("Header").size.y < 160,"Large balances do not cover the content")
+	app.game.s.cash = 0
+	app.game.s.gems = 0
 	app.change_page("WAREN")
 	await frame(5)
 	var original = app.content.get_child(2)

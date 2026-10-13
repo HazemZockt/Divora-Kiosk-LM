@@ -43,6 +43,7 @@ jobs:
           "$GODOT_BIN" --headless --path . --script res://tycoon/tests/save_test.gd
           "$GODOT_BIN" --headless --path . --script res://tycoon/tests/idle_test.gd
           "$GODOT_BIN" --headless --path . --script res://tycoon/tests/idle_ui_test.gd
+          "$GODOT_BIN" --headless --path . --script res://tycoon/tests/idle_longrun_test.gd
           python3 -m unittest discover -s scripts -p 'test_*.py'
           "$GODOT_BIN" --headless --path . --quit-after 120
 

@@ -3,3 +3,5 @@
 build/*
 !build/.gdignore
 *.tmp
+__pycache__/
+*.pyc

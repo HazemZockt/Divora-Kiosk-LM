@@ -60,6 +60,7 @@ func kiosk():
 	app.scene_art.custom_minimum_size.y = 264
 	app.scene_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(app.scene_art)
+	w.live(root,func(): return "Dein Start: Wasser verkaufen, Kartons nachbestellen, dann den Kiosk ausbauen." if e.s.sales < 10 else "Nächster Meilenstein: neues Sortiment, Manager und deine zweite Filiale.",13,W.MUTED)
 	var income = w.card(root,Color("d8eee3"))
 	w.label(income,"DEIN KIOSK-IMPERIUM",11,W.TEAL)
 	w.live(income,func(): return "%s / Min." % Model.money(e.projected_income()),25)
@@ -178,6 +179,10 @@ func shop():
 	code.max_length = 32
 	code.add_theme_font_size_override("font_size",18)
 	code.add_theme_color_override("font_color",W.INK)
+	code.add_theme_color_override("font_placeholder_color",W.MUTED)
+	code.add_theme_color_override("caret_color",W.INK)
+	code.add_theme_color_override("font_selected_color",W.CREAM)
+	code.add_theme_color_override("selection_color",W.TEAL)
 	code.add_theme_stylebox_override("normal",w.style(Color("eff5ef"),8,true))
 	code_card.add_child(code)
 	var redeem = func():
@@ -226,7 +231,7 @@ func crime():
 	var deal = w.card(root)
 	w.label(deal,"Zwielichtiger Lieferant",19)
 	w.label(deal,"12 Vapes ohne Einkaufspreis, dafür +35 Polizeirisiko. Benötigt freigeschaltetes Vape-Sortiment. Hohe Strafen können dich tief ins Minus bringen.",14,W.MUTED)
-	w.live_button(deal,func(): return "Riskante Lieferung annehmen",func(): app.act(e.shady_deal,"Lieferung angenommen. Die Polizei wird aufmerksam."),func(): return e.current().unlocked[5] and e.current().stock[5]+12 <= e.capacity(),W.CORAL)
+	w.live_button(deal,func(): return "Riskante Lieferung annehmen",func(): app.act(e.shady_deal,"Lieferung angenommen. Die Polizei wird aufmerksam."),func(): return e.current().unlocked[5] and e.free_capacity(5) >= 12,W.CORAL)
 	var security = w.card(root)
 	w.live(security,func(): return "Ladensicherheit · Stufe %d / 3" % int(e.current().security),19)
 	w.label(security,"Kamera, Alarmanlage und Sicherheitsdienst reduzieren Ladendiebstähle. Stufe 3 verhindert sie.",14,W.MUTED)
@@ -253,11 +258,14 @@ func options():
 		e.s.notifications = not e.s.notifications
 		return true,"Auf iPhone/iPad fragt iOS nach deiner Erlaubnis. Fertigmeldungen gelten für Lieferungen und Ausbauten."),func(): return true)
 	w.label(card,"Lokale iPhone-/iPad-Mitteilungen funktionieren ohne Server. Du kannst die Erlaubnis auch in den iOS-Einstellungen ändern. Auf Windows und Android zeigt dieser Testbuild nur Hinweise im Spiel.",13,W.MUTED)
+	w.live(card,app.notification_status_text,13,W.TEAL)
+	w.live_button(card,func(): return "Verkaufsklang: AN" if e.s.sound else "Verkaufsklang: AUS",func(): app.act(func():
+		e.s.sound = not e.s.sound
+		return true),func(): return true,Color("d7e8df"))
 	w.live_button(card,func(): return "Bewegung reduzieren: AN" if e.s.reduced_motion else "Bewegung reduzieren: AUS",func(): app.act(func():
 		e.s.reduced_motion = not e.s.reduced_motion
 		return true),func(): return true,Color("d7e8df"))
 	w.button(card,"Jetzt speichern",func():
-		app.persist()
-		app.toast("Spielstand gespeichert."),W.GOLD)
+		if app.persist(): app.toast("Spielstand gespeichert."),W.GOLD)
 	w.label(root,"Divora Kiosk LM · 0.3.0 · Los Angeles\nOffline-Einnahmen bis 8 Stunden. Bau- und Lieferzeiten laufen weiter. App-Daten beim Deinstallieren vorher sichern. Diese Version enthält keine echten Käufe.",13,W.MUTED)
 	w.button(root,"Zurück zum Kiosk",func(): app.change_page("KIOSK"))

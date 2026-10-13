@@ -9,6 +9,9 @@ func ck(ok: bool, message: String):
 		failures.append(message)
 		printerr("FAIL: ",message)
 func _initialize():
+	create_timer(30).timeout.connect(func():
+		printerr("FAIL: Economy test did not finish within 30 seconds")
+		quit(1))
 	var e = Model.new()
 	ck(e.s.cash == 0 and e.s.gems == 0,"No free premium currency or cash at start")
 	ck(e.s.stores[0].stock[0] == 24,"Starter sample enables zero-money start")
@@ -73,6 +76,15 @@ func _initialize():
 	ck(crime.sell(0,5,true) == "sold" and crime.s.heat > 0,"Risk sale creates police heat")
 	ck(crime.police_check(true) and crime.s.fines > 0,"Police charges substantial penalty")
 	ck(crime.sell(0,5,false) == "suspended","Police restriction applies")
+	var reserved = Model.new()
+	reserved.s.cash = 100000
+	reserved.current().unlocked[5] = true
+	reserved.current().stock[5] = reserved.capacity()-12
+	reserved.order(5)
+	ck(not reserved.shady_deal(),"Risky supplier cannot use space reserved for a paid delivery")
+	reserved.current().open = false
+	reserved.advance(70)
+	ck(reserved.current().stock[5] == reserved.capacity(),"Paid delivery respects reserved storage capacity")
 	var franchise = Model.new()
 	franchise.s.cash = 1000000000
 	for shop in franchise.s.stores: shop.owned = true; shop.level = 10
@@ -92,6 +104,16 @@ func _initialize():
 	bad = e.s.duplicate(true)
 	bad.stores[0].stock[0] = -5
 	ck(not io.valid(bad),"Negative inventory rejected")
+	bad = e.s.duplicate(true)
+	bad.stores[0].staff = 1.5
+	ck(not io.valid(bad),"Fractional staff count rejected")
+	bad = e.s.duplicate(true)
+	bad.round = 1.5
+	ck(not io.valid(bad),"Fractional franchise round rejected")
+	reserved.order(0)
+	bad = reserved.s.duplicate(true)
+	bad.tasks[0].quantity = 12.5
+	ck(not io.valid(bad),"Fractional delivery quantity rejected")
 	io.save_game(e.s)
 	var file = FileAccess.open(io.path(),FileAccess.WRITE)
 	file.store_string("broken")

@@ -39,4 +39,4 @@ Godot-Binary ../.tools/godot/Godot_v4.5.1-stable_win64_console.exe; APPDATA/LOCA
 - IPA: Bundle, Version, iPhone+iPad, arm64, native Notification-Objektdatei im Build. Installation und Benachrichtigungszustellung am echten Apple-Gerät bleiben ohne Gerät unverifiziert.
 
 ## Fertig
-Tests grün, Änderungen geprüft, GitHub-Build erfolgreich, IPA lokal vorhanden, Anleitung und Testbericht aktuell, PDF-Logbuch fortlaufend gespeichert. Danach ausdrücklich gewünschtes Herunterfahren mit kurzer Verzögerung.
+Tests grün, Änderungen geprüft, GitHub-Build erfolgreich, IPA lokal vorhanden, Anleitung und Testbericht aktuell, PDF-Logbuch fortlaufend gespeichert. Kein automatisches Herunterfahren: Die jüngste Nutzeranweisung widerruft den früheren Shutdown-Auftrag.

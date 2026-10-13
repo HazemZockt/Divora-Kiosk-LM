@@ -85,6 +85,12 @@ func current() -> Dictionary:
 func capacity(site: int = -1) -> int:
 	return 60 + mini(1000,int(s.stores[site if site >= 0 else int(s.active)].level))*12
 
+func free_capacity(product: int, site: int = -1) -> int:
+	var index = int(s.active) if site < 0 else site
+	var pending = task_for("delivery",index,product)
+	var reserved = int(pending.quantity) if not pending.is_empty() else 0
+	return capacity(index)-int(s.stores[index].stock[product])-reserved
+
 func task_for(kind: String, site: int, product: int = -1) -> Dictionary:
 	for task in s.tasks:
 		if task.kind == kind and task.site == site and task.product == product: return task
@@ -271,7 +277,7 @@ func police_check(force: bool = false) -> bool:
 	return true
 
 func shady_deal() -> bool:
-	if current().stock[5]+12 > capacity() or not current().unlocked[5]: return false
+	if free_capacity(5) < 12 or not current().unlocked[5]: return false
 	current().stock[5] += 12
 	s.heat = minf(100,s.heat+35)
 	event("Zwielichtige Lieferung angenommen. Das Polizeirisiko steigt.")

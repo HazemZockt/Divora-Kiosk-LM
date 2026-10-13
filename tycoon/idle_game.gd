@@ -35,6 +35,7 @@ var pointer_down = false
 var pointer_dragged = false
 var block_until = 0
 var tap_cooldown = 0.0
+var chime: AudioStreamPlayer
 
 func _ready():
 	ui.app = self
@@ -46,6 +47,7 @@ func _ready():
 			game.s = stored
 			away_result = game.offline(maxf(0,Time.get_unix_time_from_system()-game.s.last_wall))
 	build_shell()
+	build_sound()
 	get_viewport().size_changed.connect(layout)
 	layout()
 	change_page("KIOSK")
@@ -209,7 +211,32 @@ func serve():
 	if tap_cooldown > 0: return
 	tap_cooldown = 0.3
 	if not game.serve(): toast("Keine verkäufliche Ware. Bestelle im Warenlager nach.")
+	sale_feedback()
 	refresh_values()
+
+func build_sound():
+	var sound = AudioStreamWAV.new()
+	sound.format = AudioStreamWAV.FORMAT_16_BITS
+	sound.mix_rate = 22050
+	var bytes = PackedByteArray()
+	bytes.resize(6000)
+	for i in range(3000):
+		var t = float(i)/22050.0
+		var sample = int(sin(TAU*(880*t+1600*t*t))*exp(-t*35)*8000)
+		bytes[i*2] = sample & 255
+		bytes[i*2+1] = (sample >> 8) & 255
+	sound.data = bytes
+	chime = AudioStreamPlayer.new()
+	chime.stream = sound
+	chime.volume_db = -15
+	add_child(chime)
+
+func sale_feedback():
+	if game.s.sales > last_sales:
+		if is_instance_valid(scene_art): scene_art.sold(int(game.s.revenue)-last_revenue)
+		if game.s.sound and chime != null and not chime.playing: chime.play()
+	last_sales = int(game.s.sales)
+	last_revenue = int(game.s.revenue)
 
 func toast(message: String, seconds: float = 4.0):
 	toast_label.text = message
@@ -235,9 +262,7 @@ func _process(delta):
 		if game.revision != revision:
 			toast(str(game.s.events[0]))
 			write_notification_plan()
-		if game.s.sales > last_sales and is_instance_valid(scene_art): scene_art.sold(int(game.s.revenue)-last_revenue)
-		last_sales = int(game.s.sales)
-		last_revenue = int(game.s.revenue)
+		sale_feedback()
 	if update_accumulator >= 0.25:
 		update_accumulator = 0
 		refresh_values()
@@ -245,11 +270,27 @@ func _process(delta):
 		save_accumulator = 0
 		persist()
 
-func persist():
-	if testing or capture_mode(): return
+func persist() -> bool:
+	if testing or capture_mode(): return true
 	game.s.last_wall = int(Time.get_unix_time_from_system())
-	if not saves.save_game(game.s): toast("Speichern fehlgeschlagen. Bitte die App geöffnet lassen.",10)
+	if not saves.save_game(game.s):
+		toast("Speichern fehlgeschlagen. Bitte die App geöffnet lassen.",10)
+		return false
 	write_notification_plan()
+	return true
+
+func notification_status_text() -> String:
+	if OS.get_name() != "iOS": return "Native Fertigmeldungen sind in diesem Build für iPhone/iPad vorgesehen."
+	if not game.s.notifications: return "Ausgeschaltet. Es werden keine Fertigmeldungen geplant."
+	var path = OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS).path_join("divora_notification_status.json")
+	if FileAccess.file_exists(path):
+		var f = FileAccess.open(path,FileAccess.READ)
+		if f != null and f.get_length() < 1000:
+			var parser = JSON.new()
+			if parser.parse(f.get_as_text()) == OK and parser.data is Dictionary:
+				if parser.data.get("status") == "denied": return "iOS-Erlaubnis fehlt. Bitte unter Einstellungen → Mitteilungen → Divora erlauben."
+				if parser.data.get("status") == "allowed": return "iOS-Erlaubnis erteilt. Lieferungen und Ausbauten melden sich, wenn sie fertig sind."
+	return "iOS fragt nach deiner Erlaubnis. Bitte den Systemdialog bestätigen."
 
 func notification_plan() -> Dictionary:
 	var tasks = []
