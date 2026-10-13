@@ -256,7 +256,7 @@ func options():
 	var card = w.card(root)
 	w.live_button(card,func(): return "Fertigmeldungen: AN" if e.s.notifications else "Fertigmeldungen: AUS",func(): app.act(func():
 		e.s.notifications = not e.s.notifications
-		return true,"Auf iPhone/iPad fragt iOS nach deiner Erlaubnis. Fertigmeldungen gelten für Lieferungen und Ausbauten."),func(): return true)
+		return true,"iOS fragt nach deiner Erlaubnis. Meldungen erinnern an fertige Aufgaben und das 8-Stunden-Offline-Limit."),func(): return true)
 	w.label(card,"Lokale iPhone-/iPad-Mitteilungen funktionieren ohne Server. Du kannst die Erlaubnis auch in den iOS-Einstellungen ändern. Auf Windows und Android zeigt dieser Testbuild nur Hinweise im Spiel.",13,W.MUTED)
 	w.live(card,app.notification_status_text,13,W.TEAL)
 	w.live_button(card,func(): return "Verkaufsklang: AN" if e.s.sound else "Verkaufsklang: AUS",func(): app.act(func():

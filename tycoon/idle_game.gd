@@ -59,6 +59,8 @@ func _ready():
 	elif saves.migrated: toast("Dein bisheriger Spielstand wurde nach Los Angeles übernommen.",8)
 	elif saves.recovered: toast("Dein Spielstand wurde aus der Sicherung wiederhergestellt.",8)
 	if capture_mode(): call_deferred("capture_preview")
+	# Persist recovered/offline progress and cancel the previous absence reminder on launch.
+	call_deferred("persist")
 
 func capture_mode() -> bool:
 	return "--capture-idle" in OS.get_cmdline_user_args()
@@ -299,6 +301,13 @@ func notification_plan() -> Dictionary:
 		var name_value = "Lieferung" if task.kind == "delivery" else ("Ausbau" if task.kind == "upgrade" else "Filiale")
 		tasks.append({"id":"divora-%d" % int(task.id),"due":now+game.remaining(task),"title":"Divora Kiosk LM",
 			"body":"%s in %s fertig. Dein Kiosk wartet auf dich!" % [name_value,Model.LOCATIONS[int(task.site)].name]})
+	if paused and game.s.notifications:
+		var earns_offline = game.s.franchise_income > 0
+		for shop in game.s.stores:
+			if shop.owned and shop.open: earns_offline = true
+		if earns_offline:
+			tasks.append({"id":"divora-offline-limit","due":now+Model.OFFLINE_CAP,"title":"Deine Offline-Schicht ist vorbei",
+				"body":"Die 8-Stunden-Grenze ist erreicht. Öffne Divora Kiosk LM für deine nächste Schicht."})
 	return {"enabled":bool(game.s.notifications),"tasks":tasks}
 
 func write_notification_plan():

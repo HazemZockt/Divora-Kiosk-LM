@@ -87,6 +87,13 @@ func run():
 	app.game.s.gems = 50
 	app.game.skip_task(app.game.s.tasks[0].id)
 	ck(app.notification_plan().tasks.is_empty(),"Skipping cancels corresponding notification")
+	app.paused = true
+	var offline_plan = app.notification_plan()
+	ck(offline_plan.tasks.size() == 1,"Pausing schedules an offline earnings limit reminder")
+	if not offline_plan.tasks.is_empty():
+		ck(absf(offline_plan.tasks[0].due-Time.get_unix_time_from_system()-app.Model.OFFLINE_CAP) < 2,"Offline reminder uses eight real hours")
+	app.paused = false
+	ck(app.notification_plan().tasks.is_empty(),"Resuming cancels offline limit reminder")
 	for page in ["KIOSK","WAREN","STADT","TEAM","SHOP","KASSE","RISIKO","ZIELE","OPTIONEN"]:
 		app.change_page(page)
 		await frame(3)
